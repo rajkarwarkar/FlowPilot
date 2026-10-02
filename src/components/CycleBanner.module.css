@@ -1,0 +1,98 @@
+.container {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.8) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.cycleGrid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.node {
+  flex: 1;
+  min-width: 110px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nodeIcon {
+  font-size: 1.25rem;
+  margin-bottom: 4px;
+}
+
+.nodeLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #c7d2fe;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.nodeDesc {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.activeNode {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%);
+  border-color: #818cf8;
+  box-shadow: 0 0 16px rgba(129, 140, 248, 0.4);
+  transform: translateY(-2px);
+}
+
+.activeNode .nodeLabel {
+  color: #ffffff;
+}
+
+.arrow {
+  color: #64748b;
+  font-size: 1.1rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .cycleGrid {
+    justify-content: flex-start;
+  }
+}
