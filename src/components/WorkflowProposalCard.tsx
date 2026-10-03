@@ -170,7 +170,7 @@ export const WorkflowProposalCard: React.FC<WorkflowProposalCardProps> = ({
             const currentAction = getStepAction(step);
             const isEditing = editingStep === step.stepNumber;
             const isLoading = loadingStep === step.stepNumber;
-            const isConsequential = step.requiresApproval || step.stepType === 'action' || step.stepType === 'decision';
+            const isConsequential = Boolean(step.requiresApproval);
 
             return (
               <div

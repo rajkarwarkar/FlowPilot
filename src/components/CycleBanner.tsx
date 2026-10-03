@@ -119,7 +119,9 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
 
       // Which steps require human approval?
       const approvalSteps = steps.filter((s) => s.requiresApproval);
-      const allApproved = approvalSteps.length > 0 && approvalSteps.every((s) => s.status === 'approved');
+      const allApproved =
+        approvalSteps.length > 0 &&
+        approvalSteps.every((s) => s.status === 'approved' || s.status === 'completed');
       const anyRejected = approvalSteps.some((s) => s.status === 'rejected');
       const anyPending = approvalSteps.some((s) => s.status === 'pending');
 
@@ -147,8 +149,7 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
 
       if (stageId === 'approve') {
         if (!result.workflow) return { text: '○ Idle', className: styles.statusIdle };
-        if (approvalSteps.length === 0) {
-          // No steps require approval — auto-pass
+        if (approvalSteps.length === 0 || result.workflow.status === 'completed') {
           return { text: '✓ Done', className: styles.statusDone };
         }
         if (anyRejected) {
@@ -157,8 +158,10 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
         if (allApproved) {
           return { text: '✓ Done', className: styles.statusDone };
         }
-        // Some are still pending
-        return { text: '🛡️ Pending', className: styles.statusPending };
+        if (anyPending) {
+          return { text: '🛡️ Pending', className: styles.statusPending };
+        }
+        return { text: '✓ Done', className: styles.statusDone };
       }
 
       if (stageId === 'act') {
@@ -255,7 +258,7 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
                   if (approvalSteps.some((s) => s.status === 'pending')) return 'Awaiting Human Approval…';
                   if (result.workflow?.status === 'completed' || steps.every((s) => s.status === 'completed')) return 'Pipeline Complete — Memory Updated';
                   if (result.workflow?.status === 'in_progress' || steps.some((s) => s.status === 'executing')) return 'Executing Action & Updating Memory…';
-                  if (approvalSteps.length === 0 || approvalSteps.every((s) => s.status === 'approved')) return 'Action Ready — Executing';
+                  if (approvalSteps.length === 0 || approvalSteps.every((s) => s.status === 'approved' || s.status === 'completed')) return 'Action Ready — Executing';
                   return 'Pipeline Running';
                 })()
               : result

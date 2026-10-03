@@ -27,8 +27,42 @@ function getClient(): GoogleGenAI {
   return _client;
 }
 
-// Model — gemini-3.5-flash-lite (swap to gemini-3.8-flash for higher quality)
-const MODEL = 'gemini-3.5-flash-lite';
+// Candidate models for automatic failover when 503 capacity / 429 rate limits occur
+const CANDIDATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-1.5-flash',
+  'gemini-2.5-flash-lite',
+];
+
+async function generateContentWithRetry(prompt: string, responseSchema: any): Promise<string> {
+  const client = getClient();
+  let lastError: unknown = null;
+
+  for (const model of CANDIDATE_MODELS) {
+    try {
+      const response = await client.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema,
+        },
+      });
+
+      if (response.text) {
+        return response.text;
+      }
+    } catch (err) {
+      console.warn(`Gemini model "${model}" failed (attempting next candidate model):`, err);
+      lastError = err;
+      // Brief pause before trying next candidate model
+      await new Promise((res) => setTimeout(res, 800));
+    }
+  }
+
+  throw lastError || new Error('All Gemini candidate models failed to return content.');
+}
 
 // ---------------------------------------------------------------------------
 // JSON schemas for structured output
@@ -94,8 +128,6 @@ const WORKFLOW_SCHEMA = {
 // ---------------------------------------------------------------------------
 
 export async function extractIntent(userMessage: string): Promise<ExtractedIntent> {
-  const client = getClient();
-
   const prompt = `You are a business workflow extraction assistant for FlowPilot AI.
 
 Analyze the following user message and extract structured information.
@@ -109,19 +141,7 @@ User message:
 ${userMessage}
 """`;
 
-  const response = await client.models.generateContent({
-    model: MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: EXTRACTION_SCHEMA,
-    },
-  });
-
-  const text = response.text;
-  if (!text) {
-    throw new Error('Gemini returned an empty response during extraction.');
-  }
+  const text = await generateContentWithRetry(prompt, EXTRACTION_SCHEMA);
 
   let parsed: ExtractedIntent;
   try {
@@ -142,8 +162,6 @@ export async function generateWorkflow(
   memories: BreethMemory[],
   originalMessage: string,
 ): Promise<WorkflowProposal> {
-  const client = getClient();
-
   const memoryContext = memories.length > 0
     ? memories.map((m, i) => `[Memory ${i + 1}] (score: ${m.score.toFixed(2)}) ${m.content}`).join('\n')
     : 'No relevant memories found.';
@@ -171,14 +189,14 @@ ${memoryContext}
 - Provide structured, ordered steps representing the full lifecycle:
   1. Analyze customer request (stepType: 'trigger', status: 'completed', requiresApproval: false)
   2. Retrieve customer context (stepType: 'context', status: 'completed', requiresApproval: false)
-  3. Prepare follow-up (stepType: 'action', status: 'pending', requiresApproval: true)
+  3. Prepare follow-up proposal (stepType: 'action', status: 'pending', requiresApproval: false)
   4. Human approval required (stepType: 'approval', status: 'pending', requiresApproval: true)
-  5. Execute approved action (stepType: 'action', status: 'pending', requiresApproval: true)
+  5. Execute approved action (stepType: 'action', status: 'pending', requiresApproval: false)
   6. Wait for response (stepType: 'wait', status: 'pending', requiresApproval: false)
-  7. Escalate if no response (stepType: 'decision', status: 'pending', requiresApproval: true)
+  7. Escalate if no response (stepType: 'decision', status: 'pending', requiresApproval: false)
   8. Update memory (stepType: 'action', status: 'pending', requiresApproval: false)
 - Assign appropriate stepTypes: 'trigger', 'context', 'action', 'approval', 'wait', 'decision'.
-- Mark steps that require approval (requiresApproval: true) for consequential actions (sending messages, creating documents, escalations).
+- ONLY mark the human sign-off step (stepType: 'approval' or explicit consequential action) with requiresApproval: true.
 - Under "reasoning", explain WHY you structured the workflow this way, referencing any memory context.
 - Under "memoryUsed", list key facts from memory that influenced the plan.
 - Under "conditions", list conditional logic (e.g. "Escalate if no response after 24 hours").
@@ -186,19 +204,7 @@ ${memoryContext}
 
 IMPORTANT: Do NOT auto-execute any external actions. This is a PROPOSAL only.`;
 
-  const response = await client.models.generateContent({
-    model: MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: WORKFLOW_SCHEMA,
-    },
-  });
-
-  const text = response.text;
-  if (!text) {
-    throw new Error('Gemini returned an empty response during workflow generation.');
-  }
+  const text = await generateContentWithRetry(prompt, WORKFLOW_SCHEMA);
 
   let parsed: WorkflowProposal;
   try {
