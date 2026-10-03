@@ -107,8 +107,9 @@
 
 .mainGrid {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: minmax(300px, 360px) 1fr;
   gap: 24px;
+  min-width: 0;
 }
 
 .listColumn {
@@ -430,7 +431,7 @@
   background: #d97706;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .mainGrid {
     grid-template-columns: 1fr;
   }
@@ -459,6 +460,25 @@
   .openApprovalBtn {
     width: 100%;
     text-align: center;
+  }
+
+  .approvalBanner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .wfCard {
+    padding: 14px;
+  }
+
+  .title {
+    font-size: 1.15rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .detailTitle {
+    font-size: 1.15rem;
   }
 }
 

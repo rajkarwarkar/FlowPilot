@@ -46,6 +46,8 @@ export async function runPipeline(userMessage: string): Promise<PipelineResponse
   let workflow: WorkflowProposal | null = null;
   let inboxItemId: string | undefined;
   let workflowId: string | undefined;
+  /** Maps stepNumber → real approval record ID in DB */
+  const approvalIdMap: Record<number, string> = {};
 
   // ── Step 0: Receive message ───────────────────────────────────────────
   logEvent(activityLog, 'message_received', `Unstructured work message received (${userMessage.length} characters).`);
@@ -156,6 +158,8 @@ export async function runPipeline(userMessage: string): Promise<PipelineResponse
         proposedAction: step.action,
         description: step.description,
       });
+      // Store the real approval DB ID keyed by step number
+      approvalIdMap[step.stepNumber] = appKey;
       logEvent(
         activityLog,
         'approval_requested',
@@ -174,6 +178,7 @@ export async function runPipeline(userMessage: string): Promise<PipelineResponse
       memorySearch: memoryResult,
       workflow,
       activityLog,
+      approvalIdMap,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'An unknown error occurred.';

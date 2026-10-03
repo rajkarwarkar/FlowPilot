@@ -123,6 +123,12 @@
   border-radius: 14px;
   padding: 20px;
   min-width: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(56, 189, 248, 0.1);
 }
 
 .cardIcon {
@@ -207,6 +213,10 @@
   .efficiencyCard {
     padding: 16px;
   }
+
+  .title {
+    font-size: 1.15rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -220,7 +230,11 @@
   }
 
   .cardValue {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
+  }
+
+  .cardLabel {
+    font-size: 0.72rem;
   }
 }
 

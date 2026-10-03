@@ -330,7 +330,7 @@
 
 .historyBody {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
 }
 
 .historyTitle {
@@ -358,6 +358,10 @@
     top: 70px;
     max-width: calc(100vw - 32px);
   }
+
+  .title {
+    font-size: 1.15rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -377,6 +381,16 @@
     padding: 8px;
     font-size: 0.8rem;
     text-align: center;
+  }
+
+  .historyRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .decisionBadge {
+    align-self: flex-start;
   }
 }
 

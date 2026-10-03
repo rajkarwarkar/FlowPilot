@@ -115,13 +115,78 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
     }
 
     if (result) {
-      if (stageId === 'understand' && result.extraction) return { text: '✓ Done', className: styles.statusDone };
-      if (stageId === 'remember') return { text: '✓ Done', className: styles.statusDone };
-      if (stageId === 'reason' && result.workflow) return { text: '✓ Done', className: styles.statusDone };
-      if (stageId === 'plan' && result.workflow) return { text: '✓ Done', className: styles.statusDone };
-      if (stageId === 'approve' && result.workflow) return { text: '🛡️ Pending', className: styles.statusPending };
-      if (stageId === 'act') return { text: '⚡ Ready', className: styles.statusReady };
-      if (stageId === 'verify') return { text: '✓ Logged', className: styles.statusDone };
+      const steps = result.workflow?.steps ?? [];
+
+      // Which steps require human approval?
+      const approvalSteps = steps.filter((s) => s.requiresApproval);
+      const allApproved = approvalSteps.length > 0 && approvalSteps.every((s) => s.status === 'approved');
+      const anyRejected = approvalSteps.some((s) => s.status === 'rejected');
+      const anyPending = approvalSteps.some((s) => s.status === 'pending');
+
+      if (stageId === 'understand') {
+        return result.extraction
+          ? { text: '✓ Done', className: styles.statusDone }
+          : { text: '○ Idle', className: styles.statusIdle };
+      }
+
+      if (stageId === 'remember') {
+        return { text: '✓ Done', className: styles.statusDone };
+      }
+
+      if (stageId === 'reason') {
+        return result.workflow
+          ? { text: '✓ Done', className: styles.statusDone }
+          : { text: '○ Idle', className: styles.statusIdle };
+      }
+
+      if (stageId === 'plan') {
+        return result.workflow
+          ? { text: '✓ Done', className: styles.statusDone }
+          : { text: '○ Idle', className: styles.statusIdle };
+      }
+
+      if (stageId === 'approve') {
+        if (!result.workflow) return { text: '○ Idle', className: styles.statusIdle };
+        if (approvalSteps.length === 0) {
+          // No steps require approval — auto-pass
+          return { text: '✓ Done', className: styles.statusDone };
+        }
+        if (anyRejected) {
+          return { text: '✗ Rejected', className: styles.statusPending };
+        }
+        if (allApproved) {
+          return { text: '✓ Done', className: styles.statusDone };
+        }
+        // Some are still pending
+        return { text: '🛡️ Pending', className: styles.statusPending };
+      }
+
+      if (stageId === 'act') {
+        if (!result.workflow) return { text: '○ Idle', className: styles.statusIdle };
+        if (anyRejected) {
+          return { text: '✗ Blocked', className: styles.statusPending };
+        }
+        if (anyPending) {
+          // Blocked until all approvals complete
+          return { text: '○ Waiting', className: styles.statusQueued };
+        }
+        if (allApproved || approvalSteps.length === 0) {
+          return { text: '⚡ Ready', className: styles.statusReady };
+        }
+        return { text: '○ Waiting', className: styles.statusQueued };
+      }
+
+      if (stageId === 'verify') {
+        if (!result.workflow) return { text: '○ Idle', className: styles.statusIdle };
+        if (anyRejected) {
+          return { text: '✗ Skipped', className: styles.statusPending };
+        }
+        // Verify only runs after ACT — ACT requires all approvals
+        if (allApproved || approvalSteps.length === 0) {
+          return { text: '⏳ Waiting', className: styles.statusQueued };
+        }
+        return { text: '○ Waiting', className: styles.statusQueued };
+      }
     }
 
     if (activeStage === stageId) {
@@ -141,7 +206,20 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
         <div className={styles.liveIndicator}>
           <span className={styles.pulseDot} />
           <span className={styles.liveText}>
-            {loading ? 'AI Reasoning Engine Active…' : result ? 'Pipeline Execution Complete' : 'Engine Ready'}
+            {loading
+              ? 'AI Reasoning Engine Active…'
+              : result?.workflow
+              ? (() => {
+                  const steps = result.workflow?.steps ?? [];
+                  const approvalSteps = steps.filter((s) => s.requiresApproval);
+                  if (approvalSteps.some((s) => s.status === 'rejected')) return 'Workflow Rejected by Operator';
+                  if (approvalSteps.some((s) => s.status === 'pending')) return 'Awaiting Human Approval…';
+                  if (approvalSteps.length === 0 || approvalSteps.every((s) => s.status === 'approved')) return 'Action Ready — Executing';
+                  return 'Pipeline Running';
+                })()
+              : result
+              ? 'Engine Ready'
+              : 'Engine Ready'}
           </span>
         </div>
       </div>

@@ -102,10 +102,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* User Workspace Status */}
-        <div className={styles.userArea}>
-          <div className={styles.statusDot} />
-          <span className={styles.workspaceName}>Raj Karwarkar / Workspace</span>
+        {/* System Status Indicators & User Workspace Status */}
+        <div className={styles.rightHeaderArea}>
+          <div className={styles.systemStatusPills} title="FlowPilot Microservice & Database Connections">
+            <span className={styles.statusPill}><span className={styles.dotGreen} /> Gemini</span>
+            <span className={styles.statusPill}><span className={styles.dotGreen} /> Memory</span>
+            <span className={styles.statusPill}><span className={styles.dotGreen} /> Database</span>
+            <span className={styles.statusPill}><span className={styles.dotGreen} /> Automation</span>
+          </div>
+
+          <div className={styles.userArea}>
+            <div className={styles.statusDot} />
+            <span className={styles.workspaceName}>Raj Karwarkar / Workspace</span>
+          </div>
         </div>
       </div>
     </header>

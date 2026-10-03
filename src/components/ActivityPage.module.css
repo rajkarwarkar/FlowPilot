@@ -177,9 +177,10 @@
 
 .timestamp {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #64748b;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .detailText {
@@ -213,6 +214,12 @@
   z-index: 1;
 }
 
+@media (max-width: 768px) {
+  .timelineRow {
+    gap: 10px;
+  }
+}
+
 @media (max-width: 640px) {
   .refreshBtn {
     width: 100%;
@@ -220,16 +227,49 @@
   }
 
   .timelineRow {
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .actorNode {
+    width: 32px;
+    height: 32px;
+  }
+
+  .actorIcon {
+    font-size: 1rem;
+  }
+
+  .lineConnector {
+    left: 16px;
+  }
+
+  .cardHeader {
+    gap: 6px;
   }
 
   .timestamp {
     margin-left: 0;
     width: 100%;
+    order: 3;
   }
 
   .timelineCard {
     padding: 12px;
+  }
+
+  .title {
+    font-size: 1.15rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .timelineCard {
+    padding: 10px;
+  }
+
+  .actorNode {
+    width: 28px;
+    height: 28px;
   }
 }
 

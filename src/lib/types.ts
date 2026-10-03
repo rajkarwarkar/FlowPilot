@@ -96,6 +96,8 @@ export interface PipelineResponse {
   memorySearch: BreethSearchResult | null;
   workflow: WorkflowProposal | null;
   activityLog: ActivityEvent[];
+  /** Maps stepNumber → real approval record ID (from the approvals table) */
+  approvalIdMap?: Record<number, string>;
   error?: string;
 }
 

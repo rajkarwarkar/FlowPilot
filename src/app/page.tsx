@@ -26,6 +26,8 @@ export default function Home() {
   const [loadingStep, setLoadingStep] = useState<string>('');
   const [result, setResult] = useState<PipelineResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Maps stepNumber → real approval record ID returned by the pipeline
+  const [approvalIdMap, setApprovalIdMap] = useState<Record<number, string>>({});
 
   // Dashboard & Navigation Shared States
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -91,6 +93,8 @@ export default function Home() {
       if (!data.success) {
         setError(data.error ?? 'Pipeline returned an error.');
       } else {
+        // Store the real approval IDs returned from the pipeline
+        setApprovalIdMap(data.approvalIdMap ?? {});
         fetchDashboardData();
       }
     } catch (err) {
@@ -107,6 +111,9 @@ export default function Home() {
   const handleApprovalDecision = async (
     approvalId: string,
     action: 'approved' | 'rejected',
+    // stepNumber is passed by WorkflowProposalCard but not needed here
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _stepNumber?: number,
   ) => {
     try {
       const res = await fetch('/api/approval', {
@@ -116,6 +123,24 @@ export default function Home() {
       });
 
       if (res.ok) {
+        // Update local result so Command Center reflects the new state immediately
+        setResult((prev) => {
+          if (!prev?.workflow) return prev;
+          return {
+            ...prev,
+            workflow: {
+              ...prev.workflow,
+              steps: prev.workflow.steps.map((s) => {
+                // Find the step whose approval ID matches
+                const sApprovalId = approvalIdMap[s.stepNumber];
+                if (sApprovalId === approvalId) {
+                  return { ...s, status: action };
+                }
+                return s;
+              }),
+            },
+          };
+        });
         fetchDashboardData();
       }
     } catch (e) {
@@ -240,6 +265,7 @@ export default function Home() {
                 {result.workflow && (
                   <WorkflowProposalCard
                     workflow={result.workflow}
+                    approvalIdMap={approvalIdMap}
                     onApprovalDecision={handleApprovalDecision}
                   />
                 )}

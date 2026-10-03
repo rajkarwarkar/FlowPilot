@@ -12,7 +12,7 @@
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(56, 189, 248, 0.08);
   flex-wrap: wrap;
 }
 
@@ -275,6 +275,13 @@
 @media (max-width: 640px) {
   .explanationBanner {
     padding: 16px;
+    gap: 12px;
+  }
+
+  .bannerIcon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
   }
 
   .searchForm {
@@ -289,11 +296,19 @@
     width: 100%;
     text-align: center;
   }
+
+  .bannerTitle {
+    font-size: 1.1rem;
+  }
 }
 
 @media (max-width: 480px) {
   .memoryGrid {
     grid-template-columns: 1fr;
+  }
+
+  .contextHighlight {
+    padding: 14px;
   }
 }
 
