@@ -170,6 +170,22 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
           // Blocked until all approvals complete
           return { text: '○ Waiting', className: styles.statusQueued };
         }
+
+        const actionSteps = steps.filter(
+          (s) => s.stepType === 'action' || s.stepType === 'wait' || s.stepType === 'decision',
+        );
+        const allActionCompleted =
+          (actionSteps.length > 0 && actionSteps.every((s) => s.status === 'completed')) ||
+          result.workflow.status === 'completed';
+        const anyActionExecuting =
+          steps.some((s) => s.status === 'executing') || result.workflow.status === 'in_progress';
+
+        if (allActionCompleted) {
+          return { text: '✓ Done', className: styles.statusDone };
+        }
+        if (anyActionExecuting) {
+          return { text: '● Executing', className: styles.statusProcessing };
+        }
         if (allApproved || approvalSteps.length === 0) {
           return { text: '⚡ Ready', className: styles.statusReady };
         }
@@ -181,7 +197,30 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
         if (anyRejected) {
           return { text: '✗ Skipped', className: styles.statusPending };
         }
-        // Verify only runs after ACT — ACT requires all approvals
+        if (anyPending) {
+          return { text: '○ Waiting', className: styles.statusQueued };
+        }
+
+        const isCompleted =
+          result.workflow.status === 'completed' || steps.every((s) => s.status === 'completed');
+        if (isCompleted) {
+          return { text: '✓ Done', className: styles.statusDone };
+        }
+
+        const actionSteps = steps.filter(
+          (s) => s.stepType === 'action' || s.stepType === 'wait' || s.stepType === 'decision',
+        );
+        const allActionCompleted =
+          actionSteps.length > 0 && actionSteps.every((s) => s.status === 'completed');
+        const anyExecuting =
+          steps.some((s) => s.status === 'executing') || result.workflow.status === 'in_progress';
+
+        if (anyExecuting) {
+          return { text: '🔍 Verifying', className: styles.statusProcessing };
+        }
+        if (allActionCompleted) {
+          return { text: '⚡ Ready', className: styles.statusReady };
+        }
         if (allApproved || approvalSteps.length === 0) {
           return { text: '⏳ Waiting', className: styles.statusQueued };
         }
@@ -214,6 +253,8 @@ export const CycleBanner: React.FC<CycleBannerProps> = ({
                   const approvalSteps = steps.filter((s) => s.requiresApproval);
                   if (approvalSteps.some((s) => s.status === 'rejected')) return 'Workflow Rejected by Operator';
                   if (approvalSteps.some((s) => s.status === 'pending')) return 'Awaiting Human Approval…';
+                  if (result.workflow?.status === 'completed' || steps.every((s) => s.status === 'completed')) return 'Pipeline Complete — Memory Updated';
+                  if (result.workflow?.status === 'in_progress' || steps.some((s) => s.status === 'executing')) return 'Executing Action & Updating Memory…';
                   if (approvalSteps.length === 0 || approvalSteps.every((s) => s.status === 'approved')) return 'Action Ready — Executing';
                   return 'Pipeline Running';
                 })()

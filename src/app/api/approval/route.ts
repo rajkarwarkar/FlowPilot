@@ -6,7 +6,7 @@
 // =============================================================================
 
 import { NextResponse } from 'next/server';
-import { updateApprovalStatus } from '@/lib/db';
+import { updateApprovalStatus, executeWorkflow } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -31,11 +31,17 @@ export async function POST(request: Request) {
       );
     }
 
+    let updatedWorkflow = null;
+    if (body.action === 'approved' && result.workflowId) {
+      updatedWorkflow = await executeWorkflow(result.workflowId);
+    }
+
     return NextResponse.json({
       success: true,
       message: `Action ${body.action}`,
       workflowId: result.workflowId,
       stepNumber: result.stepNumber,
+      workflow: updatedWorkflow,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error';
@@ -45,3 +51,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

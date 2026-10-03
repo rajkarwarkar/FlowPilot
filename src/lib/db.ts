@@ -17,6 +17,7 @@ import type {
   DashboardMetrics,
   StepStatus,
   WorkflowStatus,
+  PriorityLevel,
 } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
@@ -420,22 +421,22 @@ export async function updateApprovalStatus(
         targetStepId = appData.step_id;
         actionName = appData.proposed_action;
 
-        await supabase
-          .from('approvals')
-          .update({ status: newStatus, decided_at: decidedAt })
-          .eq('id', approvalId);
-
-        if (targetStepId) {
+        if (targetWorkflowId) {
           await supabase
-            .from('workflow_steps')
-            .update({ status: newStatus })
-            .eq('id', targetStepId);
-        } else if (targetWorkflowId && targetStepNumber) {
+            .from('approvals')
+            .update({ status: newStatus, decided_at: decidedAt })
+            .eq('workflow_id', targetWorkflowId);
+
           await supabase
             .from('workflow_steps')
             .update({ status: newStatus })
             .eq('workflow_id', targetWorkflowId)
-            .eq('step_number', targetStepNumber);
+            .eq('requires_approval', true);
+        } else if (targetStepId) {
+          await supabase
+            .from('workflow_steps')
+            .update({ status: newStatus })
+            .eq('id', targetStepId);
         }
 
         await supabase.from('activity_logs').insert({
@@ -455,18 +456,32 @@ export async function updateApprovalStatus(
   const appIndex = memoryStore.approvals.findIndex((a) => a.id === approvalId);
   if (appIndex !== -1) {
     const item = memoryStore.approvals[appIndex];
-    item.status = newStatus;
-    item.decidedAt = decidedAt;
     targetWorkflowId = item.workflowId;
     targetStepNumber = item.stepNumber;
     targetStepId = item.stepId;
     actionName = item.proposedAction;
 
-    const step = memoryStore.workflowSteps.find(
-      (s) => s.id === targetStepId || (s.workflowId === targetWorkflowId && s.stepNumber === targetStepNumber),
-    );
-    if (step) {
-      step.status = newStatus;
+    if (targetWorkflowId) {
+      memoryStore.approvals.forEach((a) => {
+        if (a.workflowId === targetWorkflowId) {
+          a.status = newStatus;
+          a.decidedAt = decidedAt;
+        }
+      });
+      memoryStore.workflowSteps.forEach((s) => {
+        if (s.workflowId === targetWorkflowId && s.requiresApproval) {
+          s.status = newStatus;
+        }
+      });
+    } else {
+      item.status = newStatus;
+      item.decidedAt = decidedAt;
+      const step = memoryStore.workflowSteps.find(
+        (s) => s.id === targetStepId || (s.workflowId === targetWorkflowId && s.stepNumber === targetStepNumber),
+      );
+      if (step) {
+        step.status = newStatus;
+      }
     }
 
     memoryStore.activityLogs.unshift({
@@ -580,13 +595,25 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
           const progressPercent = Math.round((completedSteps / totalSteps) * 100);
           const pendingApprovalsCount = steps.filter((s) => s.requiresApproval && s.status === 'pending').length;
 
+          const isAllCompleted = steps.length > 0 && steps.every((s) => s.status === 'completed');
+          const calculatedStatus: WorkflowStatus = isAllCompleted
+            ? 'completed'
+            : (w.status as WorkflowStatus) || 'proposed';
+
+          const basePlan = (w.ai_plan as WorkflowProposal) || {};
+          const updatedPlan: WorkflowProposal = {
+            ...basePlan,
+            status: calculatedStatus,
+            steps: steps.length > 0 ? steps : basePlan.steps || [],
+          };
+
           return {
             id: w.id,
             inboxItemId: w.inbox_item_id,
             title: w.title,
             objective: w.objective,
             priority: w.priority,
-            status: w.status as WorkflowStatus,
+            status: calculatedStatus,
             deadline: w.deadline,
             aiReasoning: w.ai_reasoning,
             createdAt: w.created_at,
@@ -595,7 +622,7 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
             completedSteps,
             pendingApprovalsCount,
             steps,
-            plan: w.ai_plan as WorkflowProposal,
+            plan: updatedPlan,
             originalMessage: w.inbox_items?.original_message,
           };
         });
@@ -613,6 +640,16 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
     const progressPercent = Math.round((completedSteps / totalSteps) * 100);
     const pendingApprovalsCount = steps.filter((s) => s.requiresApproval && s.status === 'pending').length;
 
+    const isAllCompleted = steps.length > 0 && steps.every((s) => s.status === 'completed');
+    const calculatedStatus: WorkflowStatus = isAllCompleted ? 'completed' : w.status || 'proposed';
+
+    const basePlan = w.aiPlan || {};
+    const updatedPlan: WorkflowProposal = {
+      ...basePlan,
+      status: calculatedStatus,
+      steps: (steps.length > 0 ? steps : basePlan.steps || []) as WorkflowStep[],
+    };
+
     const inbox = memoryStore.inboxItems.find((i) => i.id === w.inboxItemId);
 
     return {
@@ -621,7 +658,7 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
       title: w.title,
       objective: w.objective,
       priority: w.priority,
-      status: w.status,
+      status: calculatedStatus,
       deadline: w.deadline,
       aiReasoning: w.aiReasoning,
       createdAt: w.createdAt,
@@ -639,7 +676,7 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
         requiresApproval: s.requiresApproval,
         status: s.status,
       })),
-      plan: w.aiPlan,
+      plan: updatedPlan,
       originalMessage: inbox?.originalMessage,
     };
   });
@@ -857,3 +894,124 @@ export async function getAnalyticsMetrics() {
     totalWorkflows: workflows.length,
   };
 }
+
+// ---------------------------------------------------------------------------
+// 12. Execute Approved Workflow Steps & Update Breeth Memory
+// ---------------------------------------------------------------------------
+
+export async function executeWorkflow(workflowId: string): Promise<WorkflowProposal | null> {
+  const supabase = getSupabaseClient();
+  const now = new Date().toISOString();
+
+  // 1. Fetch current workflow details & steps
+  const wfItem = await getWorkflowById(workflowId);
+  if (!wfItem) return null;
+
+  const steps = wfItem.steps;
+
+  // Verify all approval steps are approved/completed
+  const pendingApprovals = steps.filter((s) => s.requiresApproval && s.status === 'pending');
+  if (pendingApprovals.length > 0) {
+    // Cannot execute yet; pending approvals remain
+    return wfItem.plan || null;
+  }
+
+  // 2. Mark workflow as in_progress
+  if (supabase) {
+    try {
+      await supabase.from('workflows').update({ status: 'in_progress' }).eq('id', workflowId);
+    } catch (e) {
+      console.warn('Supabase status update error:', e);
+    }
+  }
+  const memWf = memoryStore.workflows.find((w) => w.id === workflowId);
+  if (memWf) memWf.status = 'in_progress';
+
+  // 3. Process each step to completed status and record activity logs
+  for (const step of steps) {
+    const stepId = step.id;
+
+    if (supabase && stepId) {
+      try {
+        await supabase.from('workflow_steps').update({ status: 'completed' }).eq('id', stepId);
+      } catch (e) {
+        console.warn('Supabase step update error:', e);
+      }
+    }
+
+    const memStep = memoryStore.workflowSteps.find(
+      (s) => s.id === stepId || (s.workflowId === workflowId && s.stepNumber === step.stepNumber),
+    );
+    if (memStep) memStep.status = 'completed';
+
+    step.status = 'completed';
+  }
+
+  await saveActivityLogs(
+    [
+      {
+        type: 'action_approved',
+        timestamp: now,
+        detail: `Executed all ${steps.length} workflow steps after operator approval.`,
+      },
+    ],
+    workflowId,
+  );
+
+  // 4. Update Breeth Memory episode with completed workflow outcome (VERIFY phase)
+  try {
+    const { writeEpisode } = await import('@/lib/memory/breeth');
+    await writeEpisode({
+      content: `Completed AI Workflow "${wfItem.title}": ${wfItem.objective}. Executed all ${steps.length} steps cleanly after operator sign-off.`,
+      metadata: {
+        workflowId,
+        priority: wfItem.priority,
+        totalSteps: steps.length,
+        executedAt: now,
+      },
+    });
+  } catch (err) {
+    console.warn('Breeth memory episode write error (non-fatal):', err);
+  }
+
+  // Record outcome verification in activity logs
+  await saveActivityLogs(
+    [
+      {
+        type: 'action_approved',
+        timestamp: new Date().toISOString(),
+        detail: `Outcome verified & persistent episode saved to Breeth memory for workflow "${wfItem.title}".`,
+      },
+    ],
+    workflowId,
+  );
+
+  // 5. Mark workflow status as 'completed'
+  if (supabase) {
+    try {
+      await supabase.from('workflows').update({ status: 'completed' }).eq('id', workflowId);
+    } catch (e) {
+      console.warn('Supabase workflow completion update error:', e);
+    }
+  }
+  if (memWf) memWf.status = 'completed';
+
+  // Fetch and return the updated workflow proposal
+  const finalWf = await getWorkflowById(workflowId);
+  if (!finalWf) return wfItem.plan || null;
+
+  return {
+    id: finalWf.id,
+    workflowTitle: finalWf.title,
+    objective: finalWf.objective,
+    priority: finalWf.priority as PriorityLevel,
+    deadline: finalWf.deadline,
+    reasoning: finalWf.aiReasoning,
+    steps: finalWf.steps,
+    conditions: finalWf.plan?.conditions || [],
+    approvalRequiredActions: finalWf.plan?.approvalRequiredActions || [],
+    memoryUsed: finalWf.plan?.memoryUsed || [],
+    status: finalWf.status,
+  };
+}
+

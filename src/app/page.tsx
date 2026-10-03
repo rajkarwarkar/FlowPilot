@@ -123,15 +123,22 @@ export default function Home() {
       });
 
       if (res.ok) {
-        // Update local result so Command Center reflects the new state immediately
+        const data = await res.json();
+        // Update local result so Command Center reflects the executed state immediately
         setResult((prev) => {
-          if (!prev?.workflow) return prev;
+          if (!prev) return prev;
+          if (data.workflow) {
+            return {
+              ...prev,
+              workflow: data.workflow,
+            };
+          }
+          if (!prev.workflow) return prev;
           return {
             ...prev,
             workflow: {
               ...prev.workflow,
               steps: prev.workflow.steps.map((s) => {
-                // Find the step whose approval ID matches
                 const sApprovalId = approvalIdMap[s.stepNumber];
                 if (sApprovalId === approvalId) {
                   return { ...s, status: action };
