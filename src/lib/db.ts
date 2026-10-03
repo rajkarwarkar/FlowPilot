@@ -110,14 +110,23 @@ interface StoreSchema {
   approvals: Array<ApprovalItem>;
 }
 
-const memoryStore: StoreSchema = {
-  inboxItems: [],
-  workflows: [],
-  workflowSteps: [],
-  activityLogs: [],
-  aiRuns: [],
-  approvals: [],
+const globalForMemory = globalThis as unknown as {
+  memoryStore: StoreSchema | undefined;
 };
+
+export const memoryStore: StoreSchema =
+  globalForMemory.memoryStore ?? {
+    inboxItems: [],
+    workflows: [],
+    workflowSteps: [],
+    activityLogs: [],
+    aiRuns: [],
+    approvals: [],
+  };
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForMemory.memoryStore = memoryStore;
+}
 
 function generateUUID(): string {
   return 'id-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now();
@@ -432,6 +441,11 @@ export async function updateApprovalStatus(
             .update({ status: newStatus })
             .eq('workflow_id', targetWorkflowId)
             .eq('requires_approval', true);
+
+          await supabase
+            .from('workflows')
+            .update({ status: newStatus })
+            .eq('id', targetWorkflowId);
         } else if (targetStepId) {
           await supabase
             .from('workflow_steps')
@@ -473,6 +487,8 @@ export async function updateApprovalStatus(
           s.status = newStatus;
         }
       });
+      const memWf = memoryStore.workflows.find((w) => w.id === targetWorkflowId);
+      if (memWf) memWf.status = newStatus;
     } else {
       item.status = newStatus;
       item.decidedAt = decidedAt;
@@ -596,7 +612,10 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
           const pendingApprovalsCount = steps.filter((s) => s.requiresApproval && s.status === 'pending').length;
 
           const isAllCompleted = steps.length > 0 && steps.every((s) => s.status === 'completed');
-          const calculatedStatus: WorkflowStatus = isAllCompleted
+          const hasRejection = steps.some((s) => s.status === 'rejected');
+          const calculatedStatus: WorkflowStatus = hasRejection
+            ? 'rejected'
+            : isAllCompleted
             ? 'completed'
             : (w.status as WorkflowStatus) || 'proposed';
 
@@ -641,7 +660,12 @@ export async function getAllWorkflows(): Promise<WorkflowListItem[]> {
     const pendingApprovalsCount = steps.filter((s) => s.requiresApproval && s.status === 'pending').length;
 
     const isAllCompleted = steps.length > 0 && steps.every((s) => s.status === 'completed');
-    const calculatedStatus: WorkflowStatus = isAllCompleted ? 'completed' : w.status || 'proposed';
+    const hasRejection = steps.some((s) => s.status === 'rejected');
+    const calculatedStatus: WorkflowStatus = hasRejection
+      ? 'rejected'
+      : isAllCompleted
+      ? 'completed'
+      : w.status || 'proposed';
 
     const basePlan = w.aiPlan || {};
     const updatedPlan: WorkflowProposal = {
@@ -701,7 +725,7 @@ export async function getAllApprovals(): Promise<ApprovalItem[]> {
         .select('*, workflows(title)')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         return data.map((d) => ({
           id: d.id,
           workflowId: d.workflow_id,
@@ -738,7 +762,7 @@ export async function getRecentActivity(limit = 50): Promise<ActivityEvent[]> {
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         return data.map((d) => ({
           id: d.id,
           workflowId: d.workflow_id,
@@ -782,37 +806,38 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       const activities = actRes.data || [];
       const inboxItems = inboxRes.data || [];
 
-      const activeWorkflows = workflows.filter(
-        (w) => w.status === 'proposed' || w.status === 'approved' || w.status === 'in_progress',
-      ).length;
+      if (workflows.length > 0 || approvals.length > 0 || activities.length > 0 || inboxItems.length > 0) {
+        const activeWorkflows = workflows.filter(
+          (w) => w.status === 'proposed' || w.status === 'approved' || w.status === 'in_progress',
+        ).length;
 
-      const pendingApprovals = approvals.filter((a) => a.status === 'pending').length;
+        const pendingApprovals = approvals.filter((a) => a.status === 'pending').length;
+        const completedWorkflows = workflows.filter((w) => w.status === 'completed').length;
 
-      const completedWorkflows = workflows.filter((w) => w.status === 'completed').length;
+        const highPriorityItems =
+          inboxItems.filter((i) => i.priority === 'high' || i.priority === 'critical').length +
+          workflows.filter((w) => w.priority === 'high' || w.priority === 'critical').length;
 
-      const highPriorityItems =
-        inboxItems.filter((i) => i.priority === 'high' || i.priority === 'critical').length +
-        workflows.filter((w) => w.priority === 'high' || w.priority === 'critical').length;
+        const aiActions = activities.length;
 
-      const aiActions = activities.length;
+        const recentActivity: ActivityEvent[] = activities.map((d) => ({
+          id: d.id,
+          workflowId: d.workflow_id,
+          type: d.event_type,
+          timestamp: d.created_at,
+          detail: d.detail,
+          metadata: d.metadata,
+        }));
 
-      const recentActivity: ActivityEvent[] = activities.map((d) => ({
-        id: d.id,
-        workflowId: d.workflow_id,
-        type: d.event_type,
-        timestamp: d.created_at,
-        detail: d.detail,
-        metadata: d.metadata,
-      }));
-
-      return {
-        activeWorkflows,
-        pendingApprovals,
-        aiActions,
-        highPriorityItems,
-        completedWorkflows,
-        recentActivity,
-      };
+        return {
+          activeWorkflows,
+          pendingApprovals,
+          aiActions,
+          highPriorityItems,
+          completedWorkflows,
+          recentActivity,
+        };
+      }
     } catch (e) {
       console.warn('Supabase getDashboardMetrics fallback to memory:', e);
     }
@@ -859,11 +884,20 @@ export async function getAnalyticsMetrics() {
         supabase.from('approvals').select('status'),
         supabase.from('workflows').select('status'),
       ]);
-      aiRuns = runsRes.data || [];
-      approvals = appRes.data || [];
-      workflows = wfRes.data || [];
+      if (runsRes.data?.length || appRes.data?.length || wfRes.data?.length) {
+        aiRuns = runsRes.data || [];
+        approvals = appRes.data || [];
+        workflows = wfRes.data || [];
+      } else {
+        aiRuns = memoryStore.aiRuns;
+        approvals = memoryStore.approvals;
+        workflows = memoryStore.workflows;
+      }
     } catch (e) {
       console.warn('Supabase getAnalyticsMetrics fallback to memory:', e);
+      aiRuns = memoryStore.aiRuns;
+      approvals = memoryStore.approvals;
+      workflows = memoryStore.workflows;
     }
   } else {
     aiRuns = memoryStore.aiRuns;
