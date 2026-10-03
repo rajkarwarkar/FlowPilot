@@ -86,9 +86,12 @@ export const MemoryCenter: React.FC = () => {
           <span className={styles.highlightBadge}>ACTIVE MEMORY USED IN WORKFLOW</span>
         </div>
         <div className={styles.highlightCard}>
-          <div className={styles.highlightEntity}>🏢 ABC Enterprises</div>
+          <div className={styles.highlightEntity}>
+            🏢 {(searchResult?.memories[0]?.metadata?.company as string) || 'ABC Enterprises'}
+          </div>
           <div className={styles.highlightFact}>
-            <strong>Preference:</strong> Prefers PDF quotations via email
+            <strong>Fact / Preference:</strong>{' '}
+            {searchResult?.memories[0]?.content || 'Prefers PDF quotations via email'}
           </div>
           <div className={styles.highlightMeta}>
             <span>Source: <strong>FlowPilot Memory (Breeth API)</strong></span>
