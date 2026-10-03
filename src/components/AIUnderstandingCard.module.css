@@ -6,6 +6,7 @@
   margin-bottom: 24px;
   backdrop-filter: blur(16px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
 }
 
 .cardHeader {
@@ -15,6 +16,8 @@
   margin-bottom: 20px;
   padding-bottom: 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .headerTitle {
@@ -25,6 +28,7 @@
 
 .icon {
   font-size: 1.4rem;
+  flex-shrink: 0;
 }
 
 .headerTitle h3 {
@@ -41,6 +45,7 @@
   padding: 4px 12px;
   border-radius: 20px;
   letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 
 .priority_low {
@@ -77,6 +82,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .fieldGroupFull {
@@ -84,6 +90,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .label {
@@ -98,18 +105,23 @@
   font-size: 0.95rem;
   color: #e2e8f0;
   font-weight: 500;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .valueHighlight {
   font-size: 1rem;
   color: #818cf8;
   font-weight: 600;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .valueCap {
   font-size: 0.95rem;
   color: #cbd5e1;
   text-transform: capitalize;
+  overflow-wrap: break-word;
 }
 
 .valueAction {
@@ -120,6 +132,8 @@
   padding: 8px 12px;
   border-radius: 8px;
   border-left: 3px solid #38bdf8;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .conditionList {
@@ -136,6 +150,8 @@
   font-size: 0.82rem;
   padding: 4px 10px;
   border-radius: 6px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .summaryText {
@@ -143,6 +159,8 @@
   font-size: 0.9rem;
   line-height: 1.5;
   color: #cbd5e1;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .entityTags {
@@ -159,10 +177,17 @@
   font-size: 0.8rem;
   padding: 4px 10px;
   border-radius: 6px;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 @media (max-width: 640px) {
+  .card {
+    padding: 16px;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
 }
+

@@ -1,5 +1,6 @@
 .container {
   margin-bottom: 32px;
+  width: 100%;
 }
 
 .header {
@@ -7,6 +8,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .headerBadge {
@@ -24,12 +27,14 @@
   font-weight: 700;
   color: #f8fafc;
   margin: 2px 0;
+  overflow-wrap: break-word;
 }
 
 .subtitle {
   font-size: 0.88rem;
   color: #94a3b8;
   margin: 0;
+  overflow-wrap: break-word;
 }
 
 .refreshBtn {
@@ -41,6 +46,13 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.refreshBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
 }
 
 .loadingBox {
@@ -51,6 +63,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .spinner {
@@ -60,6 +73,7 @@
   border-top-color: #38bdf8;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -70,7 +84,7 @@
   background: rgba(15, 23, 42, 0.5);
   border: 1px dashed rgba(255, 255, 255, 0.1);
   border-radius: 14px;
-  padding: 36px;
+  padding: 36px 20px;
   text-align: center;
 }
 
@@ -82,18 +96,25 @@
 .emptyCard h4 {
   color: #f8fafc;
   margin: 0 0 4px 0;
+  overflow-wrap: break-word;
 }
 
 .emptyCard p {
   color: #94a3b8;
   margin: 0;
+  overflow-wrap: break-word;
+}
+
+.analyticsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .metricsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 18px;
-  margin-bottom: 24px;
 }
 
 .metricCard {
@@ -101,11 +122,12 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 20px;
+  min-width: 0;
 }
 
 .cardIcon {
   font-size: 1.2rem;
-
+  display: inline-block;
 }
 
 .cardLabel {
@@ -114,6 +136,7 @@
   color: #94a3b8;
   text-transform: uppercase;
   margin: 8px 0 6px 0;
+  overflow-wrap: break-word;
 }
 
 .cardValue {
@@ -122,11 +145,13 @@
   color: #ffffff;
   line-height: 1;
   margin-bottom: 6px;
+  overflow-wrap: break-word;
 }
 
 .cardSub {
   font-size: 0.75rem;
   color: #64748b;
+  overflow-wrap: break-word;
 }
 
 .efficiencyCard {
@@ -141,6 +166,7 @@
   font-weight: 700;
   color: #f8fafc;
   margin: 0 0 16px 0;
+  overflow-wrap: break-word;
 }
 
 .barGroup {
@@ -154,6 +180,8 @@
   justify-content: space-between;
   font-size: 0.85rem;
   color: #cbd5e1;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .barBg {
@@ -169,3 +197,36 @@
   border-radius: 5px;
   transition: width 0.4s ease;
 }
+
+@media (max-width: 640px) {
+  .refreshBtn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .efficiencyCard {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metricsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .metricCard {
+    padding: 14px;
+  }
+
+  .cardValue {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+

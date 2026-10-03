@@ -6,6 +6,7 @@
   top: 0;
   z-index: 1000;
   padding: 12px 24px;
+  width: 100%;
 }
 
 .navContainer {
@@ -15,6 +16,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  position: relative;
 }
 
 .brand {
@@ -22,6 +24,7 @@
   align-items: center;
   gap: 12px;
   cursor: pointer;
+  user-select: none;
 }
 
 .logoMark {
@@ -36,6 +39,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
+  flex-shrink: 0;
 }
 
 .brandTitle {
@@ -43,6 +47,7 @@
   font-weight: 800;
   color: #f8fafc;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .aiTag {
@@ -59,6 +64,7 @@
   font-size: 0.72rem;
   color: #94a3b8;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .hamburger {
@@ -68,6 +74,13 @@
   color: #f8fafc;
   font-size: 1.5rem;
   cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.hamburger:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .navLinks {
@@ -93,6 +106,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .navItem:hover {
@@ -126,6 +140,7 @@
   border-radius: 20px;
   font-size: 0.78rem;
   color: #cbd5e1;
+  white-space: nowrap;
 }
 
 .statusDot {
@@ -134,9 +149,14 @@
   border-radius: 50%;
   background: #34d399;
   box-shadow: 0 0 8px #34d399;
+  flex-shrink: 0;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
+  .navbar {
+    padding: 10px 16px;
+  }
+
   .hamburger {
     display: block;
   }
@@ -144,21 +164,40 @@
   .navLinks {
     display: none;
     position: absolute;
-    top: 64px;
-    left: 0;
-    right: 0;
+    top: calc(100% + 10px);
+    left: -16px;
+    right: -16px;
     flex-direction: column;
     background: rgba(11, 15, 25, 0.98);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(129, 140, 248, 0.25);
+    border-radius: 14px;
     padding: 12px;
-    gap: 8px;
+    gap: 6px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 1000;
   }
 
   .mobileOpen {
     display: flex;
   }
 
+  .navItem {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+  }
+
   .userArea {
     display: none;
   }
 }
+
+@media (max-width: 480px) {
+  .tagline {
+    display: none;
+  }
+}
+

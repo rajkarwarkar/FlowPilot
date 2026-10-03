@@ -7,6 +7,7 @@
   backdrop-filter: blur(16px);
   box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35);
   position: relative;
+  width: 100%;
 }
 
 .toast {
@@ -21,6 +22,8 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 100;
   animation: fadeIn 0.3s ease;
+  max-width: calc(100% - 48px);
+  overflow-wrap: break-word;
 }
 
 .toast_success {
@@ -58,6 +61,8 @@
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+  gap: 14px;
 }
 
 .workflowTitle {
@@ -65,12 +70,14 @@
   font-weight: 700;
   color: #f8fafc;
   margin: 0 0 6px 0;
+  overflow-wrap: break-word;
 }
 
 .objective {
   font-size: 0.92rem;
   color: #cbd5e1;
   margin: 0;
+  overflow-wrap: break-word;
 }
 
 .headerMeta {
@@ -85,6 +92,7 @@
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 12px;
+  white-space: nowrap;
 }
 
 .priority_low { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
@@ -95,6 +103,7 @@
 .deadlineBadge {
   font-size: 0.8rem;
   color: #94a3b8;
+  white-space: nowrap;
 }
 
 .reasoningBox {
@@ -118,6 +127,7 @@
   color: #cbd5e1;
   margin: 0;
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 
 .stepsHeader {
@@ -125,6 +135,7 @@
   font-weight: 700;
   color: #f8fafc;
   margin: 0 0 16px 0;
+  overflow-wrap: break-word;
 }
 
 .stepsContainer {
@@ -157,6 +168,7 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .stepNumberBadge {
@@ -188,6 +200,7 @@
   border: 1px solid rgba(129, 140, 248, 0.3);
   padding: 2px 8px;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
 .approvalRequiredBadge {
@@ -198,6 +211,7 @@
   border: 1px solid rgba(245, 158, 11, 0.3);
   padding: 2px 8px;
   border-radius: 4px;
+  white-space: nowrap;
 }
 
 .statusBadge {
@@ -206,6 +220,7 @@
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 12px;
+  white-space: nowrap;
 }
 
 .status_pending { background: rgba(234, 179, 8, 0.15); color: #facc15; }
@@ -218,6 +233,7 @@
   font-weight: 600;
   color: #f1f5f9;
   margin: 0 0 6px 0;
+  overflow-wrap: break-word;
 }
 
 .stepDescription {
@@ -225,11 +241,13 @@
   color: #cbd5e1;
   margin: 0 0 10px 0;
   line-height: 1.4;
+  overflow-wrap: break-word;
 }
 
 .stepFooterMeta {
   font-size: 0.78rem;
   color: #94a3b8;
+  overflow-wrap: break-word;
 }
 
 /* Approval Box */
@@ -246,9 +264,10 @@
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
-.proposedIcon { font-size: 1rem; }
+.proposedIcon { font-size: 1rem; flex-shrink: 0; }
 
 .proposedLabel {
   font-size: 0.75rem;
@@ -262,11 +281,13 @@
   color: #f8fafc;
   font-weight: 500;
   margin-bottom: 12px;
+  overflow-wrap: break-word;
 }
 
 .approvalButtons {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .approveBtn {
@@ -279,6 +300,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .approveBtn:hover {
@@ -295,6 +317,7 @@
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .editBtn:hover {
@@ -311,6 +334,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .rejectBtn:hover {
@@ -326,6 +350,7 @@
   font-size: 0.85rem;
   padding: 8px 12px;
   border-radius: 8px;
+  overflow-wrap: break-word;
 }
 
 .rejectedBanner {
@@ -336,16 +361,19 @@
   font-size: 0.85rem;
   padding: 8px 12px;
   border-radius: 8px;
+  overflow-wrap: break-word;
 }
 
 .editForm {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .editInput {
   flex: 1;
+  min-width: 200px;
   background: rgba(15, 23, 42, 0.9);
   border: 1px solid #818cf8;
   color: #ffffff;
@@ -361,6 +389,7 @@
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .cancelEditBtn {
@@ -370,4 +399,47 @@
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
+  white-space: nowrap;
 }
+
+@media (max-width: 640px) {
+  .card {
+    padding: 16px;
+  }
+
+  .headerMeta {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .statusBadge {
+    margin-left: 0;
+  }
+
+  .approvalButtons {
+    width: 100%;
+  }
+
+  .approveBtn,
+  .editBtn,
+  .rejectBtn {
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+    justify-content: center;
+    padding: 8px 10px;
+  }
+
+  .editForm {
+    flex-direction: column;
+  }
+
+  .editInput,
+  .saveEditBtn,
+  .cancelEditBtn {
+    width: 100%;
+  }
+}
+

@@ -5,6 +5,7 @@
   padding: 20px 24px;
   margin-bottom: 24px;
   backdrop-filter: blur(14px);
+  width: 100%;
 }
 
 .header {
@@ -26,6 +27,7 @@
   font-weight: 700;
   color: #f8fafc;
   margin: 4px 0 0 0;
+  overflow-wrap: break-word;
 }
 
 .nodesTrack {
@@ -34,6 +36,23 @@
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+.nodesTrack::-webkit-scrollbar {
+  height: 6px;
+}
+
+.nodesTrack::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 3px;
+}
+
+.nodesTrack::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 3px;
 }
 
 .nodeCard {
@@ -57,6 +76,7 @@
 
 .icon {
   font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .nodeLabel {
@@ -64,6 +84,7 @@
   font-weight: 800;
   color: #c7d2fe;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .nodeDesc {
@@ -77,6 +98,7 @@
   font-size: 0.68rem;
   font-weight: 700;
   color: #64748b;
+  white-space: nowrap;
 }
 
 .completedNode {
@@ -111,8 +133,17 @@
   color: #475569;
   font-weight: 700;
   font-size: 1rem;
+  flex-shrink: 0;
+  padding: 0 2px;
 }
 
 .activeConnector {
   color: #34d399;
 }
+
+@media (max-width: 640px) {
+  .container {
+    padding: 14px 16px;
+  }
+}
+
