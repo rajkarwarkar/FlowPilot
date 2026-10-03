@@ -430,33 +430,38 @@ export async function updateApprovalStatus(
         targetStepId = appData.step_id;
         actionName = appData.proposed_action;
 
-        if (targetWorkflowId) {
-          await supabase
-            .from('approvals')
-            .update({ status: newStatus, decided_at: decidedAt })
-            .eq('workflow_id', targetWorkflowId);
+        // Update ONLY the target approval record
+        await supabase
+          .from('approvals')
+          .update({ status: newStatus, decided_at: decidedAt })
+          .eq('id', approvalId);
 
-          await supabase
-            .from('workflow_steps')
-            .update({ status: newStatus })
-            .eq('workflow_id', targetWorkflowId)
-            .eq('requires_approval', true);
-
-          await supabase
-            .from('workflows')
-            .update({ status: newStatus })
-            .eq('id', targetWorkflowId);
-        } else if (targetStepId) {
+        // Update ONLY the specific corresponding workflow step
+        if (targetStepId) {
           await supabase
             .from('workflow_steps')
             .update({ status: newStatus })
             .eq('id', targetStepId);
+        } else if (targetWorkflowId && targetStepNumber) {
+          await supabase
+            .from('workflow_steps')
+            .update({ status: newStatus })
+            .eq('workflow_id', targetWorkflowId)
+            .eq('step_number', targetStepNumber);
+        }
+
+        // Update overall workflow status if rejected
+        if (targetWorkflowId && newStatus === 'rejected') {
+          await supabase
+            .from('workflows')
+            .update({ status: 'rejected' })
+            .eq('id', targetWorkflowId);
         }
 
         await supabase.from('activity_logs').insert({
           workflow_id: targetWorkflowId,
           event_type: newStatus === 'approved' ? 'action_approved' : 'action_rejected',
-          detail: `User ${newStatus} action: "${actionName}"`,
+          detail: `User ${newStatus} action for Step ${targetStepNumber || ''}: "${actionName}"`,
           created_at: decidedAt,
         });
 
@@ -467,37 +472,29 @@ export async function updateApprovalStatus(
     }
   }
 
+  // Memory Fallback Store
   const appIndex = memoryStore.approvals.findIndex((a) => a.id === approvalId);
   if (appIndex !== -1) {
     const item = memoryStore.approvals[appIndex];
+    item.status = newStatus;
+    item.decidedAt = decidedAt;
+
     targetWorkflowId = item.workflowId;
     targetStepNumber = item.stepNumber;
     targetStepId = item.stepId;
     actionName = item.proposedAction;
 
-    if (targetWorkflowId) {
-      memoryStore.approvals.forEach((a) => {
-        if (a.workflowId === targetWorkflowId) {
-          a.status = newStatus;
-          a.decidedAt = decidedAt;
-        }
-      });
-      memoryStore.workflowSteps.forEach((s) => {
-        if (s.workflowId === targetWorkflowId && s.requiresApproval) {
-          s.status = newStatus;
-        }
-      });
+    // Update ONLY the matching step in memoryStore.workflowSteps
+    const step = memoryStore.workflowSteps.find(
+      (s) => s.id === targetStepId || (s.workflowId === targetWorkflowId && s.stepNumber === targetStepNumber),
+    );
+    if (step) {
+      step.status = newStatus;
+    }
+
+    if (targetWorkflowId && newStatus === 'rejected') {
       const memWf = memoryStore.workflows.find((w) => w.id === targetWorkflowId);
-      if (memWf) memWf.status = newStatus;
-    } else {
-      item.status = newStatus;
-      item.decidedAt = decidedAt;
-      const step = memoryStore.workflowSteps.find(
-        (s) => s.id === targetStepId || (s.workflowId === targetWorkflowId && s.stepNumber === targetStepNumber),
-      );
-      if (step) {
-        step.status = newStatus;
-      }
+      if (memWf) memWf.status = 'rejected';
     }
 
     memoryStore.activityLogs.unshift({
@@ -505,7 +502,7 @@ export async function updateApprovalStatus(
       workflowId: targetWorkflowId,
       type: newStatus === 'approved' ? 'action_approved' : 'action_rejected',
       timestamp: decidedAt,
-      detail: `User ${newStatus} action: "${actionName}"`,
+      detail: `User ${newStatus} action for Step ${targetStepNumber || ''}: "${actionName}"`,
     });
 
     return { success: true, workflowId: targetWorkflowId, stepNumber: targetStepNumber };
@@ -943,9 +940,28 @@ export async function executeWorkflow(workflowId: string): Promise<WorkflowPropo
 
   const steps = wfItem.steps;
 
-  // Verify all approval steps are approved/completed
-  const pendingApprovals = steps.filter((s) => s.requiresApproval && s.status === 'pending');
-  if (pendingApprovals.length > 0) {
+  // Verify all human approval requests for this workflow are approved
+  let hasPendingApprovals = false;
+  if (supabase) {
+    try {
+      const { data: pendingApps } = await supabase
+        .from('approvals')
+        .select('id')
+        .eq('workflow_id', workflowId)
+        .eq('status', 'pending');
+      if (pendingApps && pendingApps.length > 0) {
+        hasPendingApprovals = true;
+      }
+    } catch (e) {
+      console.warn('Error checking pending approvals in DB:', e);
+    }
+  } else {
+    hasPendingApprovals = memoryStore.approvals.some(
+      (a) => a.workflowId === workflowId && a.status === 'pending',
+    );
+  }
+
+  if (hasPendingApprovals) {
     // Cannot execute yet; pending approvals remain
     return wfItem.plan || null;
   }
