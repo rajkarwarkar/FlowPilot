@@ -128,12 +128,34 @@ export const WorkflowProposalCard: React.FC<WorkflowProposalCardProps> = ({
         </div>
       </div>
 
-      {/* Reasoning Banner */}
+      {/* "WHY DID FLOWPILOT DECIDE THIS?" Expandable Reasoning Panel */}
       <div className={styles.reasoningBox}>
-        <div className={styles.reasoningTitle}>
-          <span>🧠 AI Reasoning & Context</span>
+        <div className={styles.reasoningHeader}>
+          <div className={styles.reasoningTitle}>
+            <span>🧠 Why Did FlowPilot Decide This?</span>
+          </div>
         </div>
         <p className={styles.reasoningText}>{workflow.reasoning}</p>
+
+        {/* Structured Decision Factors Breakdown */}
+        <div className={styles.decisionFactors}>
+          <div className={styles.factorItem}>
+            <span className={styles.factorIcon}>🏢</span>
+            <span>Customer preference & context retrieved from Breeth memory</span>
+          </div>
+          <div className={styles.factorItem}>
+            <span className={styles.factorIcon}>🎯</span>
+            <span>Priority level calculated as <strong>{workflow.priority.toUpperCase()}</strong></span>
+          </div>
+          <div className={styles.factorItem}>
+            <span className={styles.factorIcon}>⏳</span>
+            <span>Execution scheduled for <strong>{workflow.deadline}</strong></span>
+          </div>
+          <div className={styles.factorItem}>
+            <span className={styles.factorIcon}>🛡️</span>
+            <span>Human-in-the-loop sign-off required for consequential steps</span>
+          </div>
+        </div>
       </div>
 
       {/* Visual Workflow Steps */}

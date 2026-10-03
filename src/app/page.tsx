@@ -138,9 +138,11 @@ export default function Home() {
       />
 
       <main className={styles.main}>
-        {/* Core Product Lifecycle Concept Banner */}
+        {/* Core Product Lifecycle Concept Banner / Command Center */}
         <div className={styles.bannerWrapper}>
           <CycleBanner
+            loading={loading}
+            result={result}
             activeStage={
               loading
                 ? 'reason'
@@ -148,7 +150,7 @@ export default function Home() {
                 ? 'plan'
                 : activeTab === 'memory'
                 ? 'remember'
-                : 'remember'
+                : 'understand'
             }
           />
         </div>

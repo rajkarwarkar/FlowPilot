@@ -38,8 +38,13 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memoryResult }) => {
         <div className={styles.memoryList}>
           {memories.map((mem, idx) => (
             <div key={mem.id || idx} className={styles.memoryItem}>
-              <div className={styles.scoreBadge}>
-                {(mem.score * 100).toFixed(0)}% Match
+              <div className={styles.memoryItemTop}>
+                <span className={styles.scoreBadge}>
+                  {(mem.score * 100).toFixed(0)}% MATCH
+                </span>
+                <span className={styles.influenceTag}>
+                  ⚡ Influenced Workflow: Injected customer context
+                </span>
               </div>
               <p className={styles.memoryText}>{mem.content}</p>
             </div>
